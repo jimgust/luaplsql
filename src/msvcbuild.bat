@@ -26,4 +26,6 @@
 @mkdir ..\PlugIns\lua\clibs
 @move /Y luaplsql.dll ..\PlugIns\lua\clibs
 
+@call msvcbuild-sqlite.bat
+
 :END
