@@ -61,19 +61,22 @@ local function ExportInit()
 	-- Get export filename
 	local index
 	filename, index = plsql.GetSaveFileName(nil, exports.filter)
-	if not (filename and buffer:alloc()) then
+
+	local allocOk = filename and buffer:alloc()
+
+	if not allocOk then
 		return false
 	end
 
 	local funcs = exports[index]
 
-	CurExportInit = funcs[1]
-	CurExportFinished = funcs[2]
-	CurExportPrepare = funcs[3]
-	CurExportData = funcs[4]
+	CurExportInit     = funcs and funcs[1]
+	CurExportFinished = funcs and funcs[2]
+	CurExportPrepare  = funcs and funcs[3]
+	CurExportData     = funcs and funcs[4]
 
 	if CurExportInit then
-		return CurExportInit(buffer)
+		return CurExportInit(buffer, filename)
 	end
 end
 
@@ -85,12 +88,16 @@ local function ExportFinished()
 
 	-- Write file
 	local fd = sys.handle()
-	if not (fd:create(filename)
-		and fd:write(buffer:getstring()))
-	then
-		plsql.ShowMessage(errorMessage)
+	local data = buffer:tostring()
+	local createOk = fd:create(filename)
+	local writeOk
+	if createOk then
+		writeOk = fd:write(data)  -- captures only the first return value (boolean)
 	end
 	fd:close()
+	if not (createOk and writeOk) then
+		plsql.ShowMessage("Export failed: could not write to " .. tostring(filename))
+	end
 
 	buffer:close()
 
