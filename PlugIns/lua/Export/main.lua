@@ -28,11 +28,9 @@ end
 
 local function RegisterExport()
 
-	-- Export filters
-	local n, filter = 1, ""
-
-	-- Traverse export directory
+	-- Traverse export directory and collect all formats
 	local root = rootPath .. "\\" .. dirName .. "\\"
+	local collected = {}
 
 	for name, is_dir in sys.dir(root) do
 		if is_dir then
@@ -42,14 +40,28 @@ local function RegisterExport()
 			else
 				local title, ext, funcs = chunk(root, name)
 				if title then
-					exports[n], n = funcs, n + 1
-
-					filter = filter	.. title
-						.. " files (*." .. ext .. ")\0"
-						.. "*." .. ext .. "\0"
+					collected[#collected + 1] = {title = title, ext = ext, funcs = funcs}
 				end
 			end
 		end
+	end
+
+	-- Move Text format to position 1 so it is the default in the Save dialog
+	for i, entry in ipairs(collected) do
+		if entry.ext == "txt" then
+			table.remove(collected, i)
+			table.insert(collected, 1, entry)
+			break
+		end
+	end
+
+	-- Build exports table and filter string in final order
+	local n, filter = 1, ""
+	for _, entry in ipairs(collected) do
+		exports[n], n = entry.funcs, n + 1
+		filter = filter .. entry.title
+			.. " files (*." .. entry.ext .. ")\0"
+			.. "*." .. entry.ext .. "\0"
 	end
 
 	exports.filter = filter .. "\0\0"
